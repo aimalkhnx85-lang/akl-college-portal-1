@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKL College Matta, Swat — Proctorial & Discipline Management Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Playfair Display -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            850: '#064e3b',
+                            900: '#022c22',
+                            950: '#011c16',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#d97706',
+                            600: '#b45309',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Dedicated A4 Print Styling: Hides UI and prints ONLY the Dual-Copy Fine Challan */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #printable-slip-area, #printable-slip-area * {
+                visibility: visible;
+            }
+            #printable-slip-area {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: #ffffff !important;
+                box-shadow: none !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* Subtle institutional background pattern */
+        .academic-bg {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 0.8px, transparent 0.8px);
+            background-size: 22px 22px;
+        }
+    </style>
+</head>
+<body class="academic-bg text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Toast Notification Container (Replaces alert) -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Custom Confirmation Modal (Replaces confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 transform transition-all">
+            <div class="flex items-center gap-3 text-amber-600 mb-3">
+                <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-bold text-slate-900">Confirm Action</h3>
+            </div>
+            <p id="confirm-message" class="text-sm text-slate-600 mb-6">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-cancel-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition">Cancel</button>
+                <button id="confirm-ok-btn" class="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 transition shadow-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 1. DUAL ROLE-BASED LOGIN SCREEN VIEW                                  -->
+    <!-- ===================================================================== -->
+    <div id="login-view" class="flex-1 flex flex-col justify-center items-center p-4 sm:p-6">
+        <!-- Institutional Header Crest -->
+        <div class="max-w-xl w-full text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-850 text-amber-400 shadow-lg mb-3 border-2 border-amber-400/60">
+                <i class="fa-solid fa-building-columns text-3xl"></i>
+            </div>
+            <h1 class="font-serif text-2xl sm:text-3xl font-extrabold text-emerald-950 tracking-tight leading-snug">
+                Government Afzal Khan Lala Postgraduate College Matta, Swat
+            </h1>
+            <p class="text-xs sm:text-sm font-semibold text-emerald-800 mt-1">
+                Khyber Pakhtunkhwa • Official Proctorial Board
+            </p>
+            <div class="mt-3 inline-flex flex-wrap items-center justify-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-950 text-xs font-bold shadow-xs">
+                <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                <span>Proctorial & Discipline Management Portal</span>
+                <span class="text-amber-400">•</span>
+                <span class="text-emerald-900">Chief Proctor: Prof. Ajmal Iqbal</span>
+            </div>
+        </div>
+
+        <!-- Login Card -->
+        <div class="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-200/90 overflow-hidden">
+            <!-- Two Separate Login Portals / Tabs -->
+            <div class="grid grid-cols-2 bg-slate-100 p-1.5 m-4 rounded-2xl border border-slate-200">
+                <button type="button" id="tab-admin" onclick="switchLoginTab('admin')"
+                    class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-850 text-white shadow-sm">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Chief Proctor / Admin</span>
+                </button>
+                <button type="button" id="tab-proctor" onclick="switchLoginTab('proctor')"
+                    class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span>Duty Proctor Login</span>
+                </button>
+            </div>
+
+            <div class="px-6 pb-6 pt-1">
+                <!-- Dynamic Role Context Banner -->
+                <div id="role-banner" class="mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+                    <i class="fa-solid fa-crown text-amber-600 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-extrabold text-emerald-950 uppercase tracking-wider">Chief Proctor / Admin Command</p>
+                        <p class="text-xs text-emerald-800 mt-0.5">Complete disciplinary authority under <strong>Prof. Ajmal Iqbal</strong>. Manage proctors, issue/edit/waive fines, and customize violation rates.</p>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Username / Officer ID</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i class="fa-solid fa-id-badge"></i>
+                            </span>
+                            <input type="text" id="login-username" required placeholder="Enter Officer ID"
+                                class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i class="fa-solid fa-lock"></i>
+                            </span>
+                            <input type="password" id="login-password" required placeholder="Enter Password"
+                                class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 transition">
+                            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
+                                <i id="password-eye" class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 px-4 rounded-xl bg-emerald-850 hover:bg-emerald-900 text-white font-bold text-sm shadow-lg shadow-emerald-900/20 transition flex items-center justify-center gap-2">
+                        <span>Access Proctorial Portal</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <p class="text-xs text-slate-400 mt-6 text-center">© 2026 Government Afzal Khan Lala Postgraduate College Matta, Swat</p>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 2. MAIN APPLICATION PORTAL VIEW                                       -->
+    <!-- ===================================================================== -->
+    <div id="portal-view" class="hidden flex-1 flex flex-col">
+        <!-- Institutional Top Header -->
+        <header class="bg-emerald-950 text-white shadow-lg border-b-4 border-amber-500 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                    <!-- College Branding & Chief Proctor Badge -->
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-850 border border-amber-400/60 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+                            <i class="fa-solid fa-building-columns text-2xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="font-serif text-base sm:text-xl font-bold tracking-tight text-white leading-snug">
+                                Government Afzal Khan Lala Postgraduate College Matta, Swat
+                            </h1>
+                            <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-emerald-200 mt-0.5">
+                                <span class="font-semibold text-white">Proctorial & Discipline Management Portal</span>
+                                <span class="text-emerald-700">•</span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-amber-300 font-bold">
+                                    <i class="fa-solid fa-shield-halved"></i> Chief Proctor: Prof. Ajmal Iqbal
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logged-in Officer Profile & Logout -->
+                    <div class="flex items-center justify-between lg:justify-end gap-3 pt-2 lg:pt-0 border-t border-emerald-900 lg:border-0">
+                        <div class="flex items-center gap-2.5 bg-emerald-900/90 px-3.5 py-1.5 rounded-xl border border-emerald-800">
+                            <div id="user-avatar-badge" class="w-8 h-8 rounded-lg bg-amber-500 text-emerald-950 font-extrabold text-xs flex items-center justify-center">
+                                AI
+                            </div>
+                            <div>
+                                <p id="header-user-name" class="text-xs font-bold text-white leading-tight">Prof. Ajmal Iqbal</p>
+                                <span id="header-user-role" class="inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300">
+                                    Chief Proctor (Admin)
+                                </span>
+                            </div>
+                        </div>
+                        <button onclick="handleLogout()" class="px-3.5 py-2 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Bar -->
+            <div class="bg-emerald-900/95 border-t border-emerald-800/80">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto no-scrollbar gap-1.5 py-2">
+                    <button onclick="switchSection('dashboard')" id="nav-dashboard" class="nav-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap bg-amber-500 text-emerald-950 shadow-sm transition">
+                        <i class="fa-solid fa-table-list"></i>
+                        <span>Dashboard & Fine Ledger</span>
+                    </button>
+                    <button onclick="switchSection('issue-fine')" id="nav-issue-fine" class="nav-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-emerald-100 hover:bg-emerald-800 flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                        <span>Issue New Fine</span>
+                    </button>
+                    <!-- Chief Proctor / Admin-Only Tabs -->
+                    <button onclick="switchSection('manage-proctors')" id="nav-manage-proctors" class="admin-only-nav nav-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-emerald-100 hover:bg-emerald-800 flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-users-gear"></i>
+                        <span>Proctorial Board</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">Chief Admin</span>
+                    </button>
+                    <button onclick="switchSection('violation-rules')" id="nav-violation-rules" class="admin-only-nav nav-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-emerald-100 hover:bg-emerald-800 flex items-center gap-2 whitespace-nowrap transition">
+                        <i class="fa-solid fa-scale-balanced"></i>
+                        <span>Violation Tariff & Settings</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">Chief Admin</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Duty Proctor Permission Boundary Notice -->
+        <div id="proctor-restriction-bar" class="hidden bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-xs text-amber-950">
+            <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-amber-600"></i>
+                    <span><strong>Duty Proctor Access:</strong> Authorized to issue disciplinary fines, view ledger records, and print official fine challan slips. Editing, deleting, waiving, or changing payment status is exclusively reserved for <strong>Chief Proctor Prof. Ajmal Iqbal</strong>.</span>
+                </div>
+                <button onclick="switchSection('issue-fine')" class="px-3 py-1 rounded-lg bg-emerald-850 text-white font-bold hover:bg-emerald-900 transition">
+                    + Issue Fine Challan
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Workspace Container -->
+        <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
+
+            <!-- ============================================================== -->
+            <!-- SECTION A: DASHBOARD & FINE RECORDS LEDGER                     -->
+            <!-- ============================================================== -->
+            <section id="section-dashboard" class="space-y-6">
+                <!-- 4 Summary KPI Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Fines Issued</p>
+                            <h3 id="stat-total-count" class="text-2xl font-extrabold text-slate-900 mt-1">0</h3>
+                            <p id="stat-total-amount-sub" class="text-xs text-slate-500 mt-1">Total Assessed: Rs. 0</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-850 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-file-contract"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Collected (PKR)</p>
+                            <h3 id="stat-paid-amount" class="text-2xl font-extrabold text-teal-700 mt-1">Rs. 0</h3>
+                            <p id="stat-paid-count" class="text-xs text-teal-600 font-medium mt-1">0 challans paid</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pending Amount (PKR)</p>
+                            <h3 id="stat-unpaid-amount" class="text-2xl font-extrabold text-rose-600 mt-1">Rs. 0</h3>
+                            <p id="stat-unpaid-count" class="text-xs text-rose-600 font-medium mt-1">0 challans unpaid</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Duty Proctors</p>
+                            <h3 id="stat-proctors-count" class="text-2xl font-extrabold text-amber-600 mt-1">0</h3>
+                            <p class="text-xs text-slate-500 mt-1">Under Prof. Ajmal Iqbal</p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fine Records Ledger Card -->
+                <div class="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-4 mb-4 border-b border-slate-100">
+                        <div>
+                            <h2 class="font-serif text-lg font-bold text-slate-900">Disciplinary Fine Records Ledger</h2>
+                            <p class="text-xs text-slate-500">Official register of student fines issued at AKL Postgraduate College Matta, Swat</p>
+                        </div>
+                        <button onclick="switchSection('issue-fine')" class="px-4 py-2.5 rounded-xl bg-emerald-850 hover:bg-emerald-900 text-white text-xs sm:text-sm font-bold shadow-sm transition inline-flex items-center justify-center gap-2 self-start md:self-auto">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Issue New Fine</span>
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Toolbar -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                        <div class="relative sm:col-span-2">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" id="search-input" oninput="renderFinesTable()" placeholder="Search Student Name, Father Name, Roll No, or Slip #..."
+                                class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                        </div>
+
+                        <select id="filter-dept" onchange="renderFinesTable()" class="px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <option value="ALL">All Programs / Classes</option>
+                            <option value="BS Chemistry">BS Chemistry</option>
+                            <option value="BS Computer Science">BS Computer Science</option>
+                            <option value="BS English">BS English</option>
+                            <option value="BS Botany">BS Botany</option>
+                            <option value="BS Mathematics">BS Mathematics</option>
+                            <option value="FSc Pre-Medical">FSc Pre-Medical</option>
+                            <option value="FSc Pre-Engineering">FSc Pre-Engineering</option>
+                            <option value="ICS">ICS</option>
+                        </select>
+
+                        <select id="filter-status" onchange="renderFinesTable()" class="px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            <option value="ALL">All Payment Statuses</option>
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Waived">Waived</option>
+                        </select>
+                    </div>
+
+                    <!-- Responsive Table -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                    <th class="py-3.5 px-4">Slip # & Date</th>
+                                    <th class="py-3.5 px-4">Student Details</th>
+                                    <th class="py-3.5 px-4">Program & Semester</th>
+                                    <th class="py-3.5 px-4">Violation</th>
+                                    <th class="py-3.5 px-4">Fine (PKR)</th>
+                                    <th class="py-3.5 px-4">Issued By</th>
+                                    <th class="py-3.5 px-4">Status</th>
+                                    <th class="py-3.5 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fines-table-body" class="divide-y divide-slate-100 text-sm">
+                                <!-- Dynamic Ledger Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- SECTION B: ISSUE NEW FINE CHALLAN FORM                         -->
+            <!-- ============================================================== -->
+            <section id="section-issue-fine" class="hidden max-w-4xl mx-auto">
+                <div class="bg-white rounded-3xl shadow-md border border-slate-200 overflow-hidden">
+                    <div class="bg-emerald-950 px-6 py-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-4 border-amber-500">
+                        <div>
+                            <h2 class="font-serif text-xl font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-file-signature text-amber-400"></i>
+                                <span id="form-header-title">Issue Official Disciplinary Fine Challan</span>
+                            </h2>
+                            <p class="text-xs text-emerald-200 mt-0.5">Authorized by Chief Proctor Prof. Ajmal Iqbal • Generates Instant Dual-Copy Print Slip</p>
+                        </div>
+                        <span id="form-challan-preview" class="px-3 py-1 rounded-lg bg-emerald-900 border border-emerald-700 text-amber-300 font-mono text-xs font-bold self-start sm:self-auto">
+                            AKL-PRC-2026-001
+                        </span>
+                    </div>
+
+                    <form id="issue-fine-form" onsubmit="handleIssueFine(event)" class="p-6 sm:p-8 space-y-6">
+                        <input type="hidden" id="edit-fine-id" value="">
+
+                        <!-- 1. Student Information -->
+                        <div>
+                            <h3 class="text-xs font-extrabold text-emerald-900 uppercase tracking-wider mb-3 pb-1.5 border-b border-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-user-graduate text-amber-600"></i>
+                                <span>1. Student Academic Details</span>
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Student Full Name *</label>
+                                    <input type="text" id="fine-student-name" required placeholder="e.g., Muhammad Haris"
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Father's Name *</label>
+                                    <input type="text" id="fine-father-name" required placeholder="e.g., Fazal Rahim"
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">College Roll Number *</label>
+                                    <input type="text" id="fine-roll-no" required placeholder="e.g., BSCH-24-018"
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Class / Program *</label>
+                                    <select id="fine-department" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                        <option value="BS Chemistry">BS Chemistry</option>
+                                        <option value="BS Computer Science">BS Computer Science</option>
+                                        <option value="BS English">BS English</option>
+                                        <option value="BS Botany">BS Botany</option>
+                                        <option value="BS Mathematics">BS Mathematics</option>
+                                        <option value="BS Political Science">BS Political Science</option>
+                                        <option value="FSc Pre-Medical">FSc Pre-Medical</option>
+                                        <option value="FSc Pre-Engineering">FSc Pre-Engineering</option>
+                                        <option value="ICS">ICS (Computer Science)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Semester / Year *</label>
+                                    <select id="fine-semester" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                        <option value="1st Semester">1st Semester</option>
+                                        <option value="2nd Semester">2nd Semester</option>
+                                        <option value="3rd Semester">3rd Semester</option>
+                                        <option value="4th Semester">4th Semester</option>
+                                        <option value="5th Semester">5th Semester</option>
+                                        <option value="6th Semester">6th Semester</option>
+                                        <option value="7th Semester">7th Semester</option>
+                                        <option value="8th Semester">8th Semester</option>
+                                        <option value="1st Year (Part-I)">1st Year (Part-I)</option>
+                                        <option value="2nd Year (Part-II)">2nd Year (Part-II)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Date & Time of Violation *</label>
+                                    <input type="datetime-local" id="fine-datetime" required
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Violation & Fine Details -->
+                        <div>
+                            <h3 class="text-xs font-extrabold text-emerald-900 uppercase tracking-wider mb-3 pb-1.5 border-b border-slate-100 flex items-center gap-2">
+                                <i class="fa-solid fa-gavel text-amber-600"></i>
+                                <span>2. Disciplinary Violation & Fine Assessment</span>
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Violation Type *</label>
+                                    <select id="fine-violation" onchange="autoFillViolationAmount()" required
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                        <!-- Populated dynamically -->
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Fine Amount (PKR) *</label>
+                                    <div class="relative">
+                                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 font-bold text-xs">Rs.</span>
+                                        <input type="number" id="fine-amount" required min="50" step="50" placeholder="200"
+                                            class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                                    </div>
+                                    <p id="amount-hint" class="text-[11px] text-slate-500 mt-1">Auto-filled from official college violation tariff.</p>
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-bold text-slate-700 mb-1">Proctor Remarks / Incident Notes</label>
+                                    <textarea id="fine-remarks" rows="2" placeholder="Specify location on campus, incident details, or prior verbal warning..."
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Issuing Officer & Chief Proctor Authority Banner -->
+                        <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-850 text-amber-400 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-stamp"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500">Issuing Proctor: <strong id="form-issued-by" class="text-slate-900">Prof. Ajmal Iqbal</strong></p>
+                                    <p class="text-xs text-slate-500">Command Authority: <strong class="text-emerald-900">Chief Proctor Prof. Ajmal Iqbal (AKL College Matta)</strong></p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-emerald-900 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full self-start sm:self-center">
+                                Opens Print Challan Automatically
+                            </span>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+                            <button type="button" onclick="resetFineForm(); switchSection('dashboard');" class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition">
+                                Cancel
+                            </button>
+                            <button type="submit" id="submit-fine-btn" class="px-6 py-2.5 rounded-xl bg-emerald-850 hover:bg-emerald-900 text-white text-sm font-bold shadow-lg shadow-emerald-900/20 transition flex items-center gap-2">
+                                <i class="fa-solid fa-print"></i>
+                                <span>Issue Fine & Open Print Challan</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- SECTION C: PROCTORIAL BOARD MANAGEMENT (CHIEF ADMIN ONLY)      -->
+            <!-- ============================================================== -->
+            <section id="section-manage-proctors" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Appoint New Duty Proctor Form -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm h-fit">
+                        <h3 class="font-serif text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-user-plus text-emerald-850"></i>
+                            <span>Appoint Duty Proctor</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-5">Create login credentials for faculty proctors. Appointed proctors can issue fines and print slips under Chief Proctor Prof. Ajmal Iqbal.</p>
+
+                        <form onsubmit="handleAddProctor(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Faculty Name & Title *</label>
+                                <input type="text" id="new-proctor-name" required placeholder="e.g., Prof. Tariq Mahmood"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Academic Department *</label>
+                                <input type="text" id="new-proctor-dept" required placeholder="e.g., Department of Physics"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Proctor Username *</label>
+                                <input type="text" id="new-proctor-username" required placeholder="e.g., proctor3"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Login Password *</label>
+                                <input type="text" id="new-proctor-password" required placeholder="e.g., proctor123"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            </div>
+                            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-emerald-850 hover:bg-emerald-900 text-white text-sm font-bold transition shadow-sm">
+                                + Add Duty Proctor Account
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Proctorial Board Directory -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <div>
+                                <h3 class="font-serif text-lg font-bold text-slate-900">AKL College Matta Proctorial Board</h3>
+                                <p class="text-xs text-slate-500">Commanded by Chief Proctor Prof. Ajmal Iqbal</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-900 text-xs font-bold border border-emerald-200">
+                                Active Officers
+                            </span>
+                        </div>
+
+                        <div id="proctors-list" class="space-y-3">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================== -->
+            <!-- SECTION D: VIOLATION TARIFF & SETTINGS (CHIEF ADMIN ONLY)      -->
+            <!-- ============================================================== -->
+            <section id="section-violation-rules" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Add Violation Category -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm h-fit">
+                        <h3 class="font-serif text-lg font-bold text-slate-900 flex items-center gap-2 mb-1">
+                            <i class="fa-solid fa-plus-circle text-emerald-850"></i>
+                            <span>Add Violation Preset</span>
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-5">Customize official disciplinary violation categories and standard fine amounts in PKR.</p>
+
+                        <form onsubmit="handleAddRule(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Violation Title *</label>
+                                <input type="text" id="new-rule-title" required placeholder="e.g., Campus Smoking Violation"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Preset Fine Amount (PKR) *</label>
+                                <input type="number" id="new-rule-amount" required min="50" step="50" placeholder="500"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-700">
+                            </div>
+                            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-emerald-850 hover:bg-emerald-900 text-white text-sm font-bold transition">
+                                Save Violation Preset
+                            </button>
+                        </form>
+
+                        <div class="mt-8 pt-5 border-t border-slate-100">
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Portal Data Controls</h4>
+                            <button onclick="confirmResetDemoData()" class="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Reset Demo Data to Defaults</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Official Tariff Schedule -->
+                    <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <h3 class="font-serif text-lg font-bold text-slate-900 mb-1">Approved Disciplinary Violation Tariff</h3>
+                        <p class="text-xs text-slate-500 mb-4">Issued under the office of Chief Proctor Prof. Ajmal Iqbal</p>
+                        <div id="rules-list" class="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 3. OFFICIAL DUAL-COPY PRINTABLE FINE CHALLAN SLIP MODAL               -->
+    <!-- ===================================================================== -->
+    <div id="slip-modal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-40 hidden items-center justify-center p-3 sm:p-6 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-300 my-auto">
+            <!-- Top Print Action Bar (Hidden when printing) -->
+            <div class="no-print bg-emerald-950 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-receipt text-amber-400 text-lg"></i>
+                    <div>
+                        <span class="font-bold text-sm block leading-tight">Official Fine Challan Slip Preview</span>
+                        <span class="text-[11px] text-emerald-300">A4 Dual-Copy Format (Student Copy + Proctorial Office Copy)</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-emerald-950 font-extrabold text-xs transition flex items-center gap-2 shadow">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Print Official Slip</span>
+                    </button>
+                    <button onclick="closeSlipModal()" class="w-8 h-8 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white flex items-center justify-center transition" title="Close Preview">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PRINTABLE A4 CHALLAN AREA -->
+            <div id="printable-slip-area" class="p-5 sm:p-7 bg-white text-slate-900 space-y-5">
+
+                <!-- ========================================================= -->
+                <!-- COPY 1: STUDENT COPY                                      -->
+                <!-- ========================================================= -->
+                <div class="border-2 border-slate-900 rounded-xl p-4 sm:p-5 relative">
+                    <!-- Institutional Slip Header -->
+                    <div class="flex items-start justify-between border-b-2 border-slate-900 pb-3 mb-3 gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-lg border-2 border-slate-900 flex items-center justify-center text-slate-900 shrink-0">
+                                <i class="fa-solid fa-building-columns text-2xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-serif text-sm sm:text-base font-extrabold text-slate-950 uppercase leading-tight">
+                                    Government Afzal Khan Lala Postgraduate College Matta, Swat
+                                </h2>
+                                <p class="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">
+                                    AKL Postgraduate College Matta • Office of the Chief Proctor
+                                </p>
+                                <p class="text-[11px] font-extrabold text-slate-900 uppercase mt-0.5">
+                                    OFFICIAL DISCIPLINARY FINE CHALLAN SLIP
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 border-2 border-slate-900 rounded text-[10px] font-extrabold uppercase tracking-wider shrink-0 bg-slate-100">
+                            STUDENT COPY
+                        </span>
+                    </div>
+
+                    <!-- Challan Metadata Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-y-2.5 gap-x-4 text-xs mb-3.5">
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Challan / Slip No.</span>
+                            <span id="slip-id-1" class="font-mono font-extrabold text-slate-950 text-sm">AKL-PRC-2026-001</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Issue Date & Time</span>
+                            <span id="slip-date-1" class="font-bold text-slate-900">13 Nov 2026</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Payment Status</span>
+                            <span id="slip-status-1" class="inline-block px-2 py-0.5 border border-slate-800 rounded text-[10px] font-extrabold uppercase text-slate-950">UNPAID</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Student Name</span>
+                            <span id="slip-student-1" class="font-bold text-slate-950">Student Name</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Father's Name</span>
+                            <span id="slip-father-1" class="font-semibold text-slate-800">Father Name</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Roll No. / Program & Sem</span>
+                            <span id="slip-roll-1" class="font-mono font-bold text-slate-900">BSCH-24-001</span>
+                        </div>
+                    </div>
+
+                    <!-- Violation & Amount Table -->
+                    <table class="w-full border border-slate-900 text-xs mb-4">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-900">
+                                <th class="py-1.5 px-3 text-left font-bold uppercase text-[11px]">Disciplinary Violation & Proctor Remarks</th>
+                                <th class="py-1.5 px-3 text-right font-bold uppercase text-[11px] w-36">Fine Amount (PKR)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="py-2 px-3">
+                                    <p id="slip-violation-1" class="font-bold text-slate-950">Uniform Violation</p>
+                                    <p id="slip-remarks-1" class="text-[11px] text-slate-600 italic mt-0.5">No additional remarks</p>
+                                </td>
+                                <td id="slip-amount-1" class="py-2 px-3 text-right font-extrabold text-base text-slate-950 align-middle">
+                                    Rs. 200/-
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Signature & Stamp Block -->
+                    <div class="flex items-end justify-between pt-5 mt-2 text-[11px] gap-4">
+                        <div>
+                            <p class="font-bold text-slate-900" id="slip-proctor-1">Prof. Zubair Ahmad</p>
+                            <p class="text-slate-600 border-t border-slate-500 pt-0.5 mt-1">Issued By (Duty Proctor)</p>
+                        </div>
+                        <div class="text-center hidden sm:block">
+                            <p class="text-[10px] text-slate-500">Deposit fine within 3 working days at College Accounts Office</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="inline-block text-center">
+                                <div class="px-3 py-1 border border-dashed border-slate-400 rounded mb-1 text-[9px] uppercase tracking-widest text-slate-400 font-bold">
+                                    Official Proctorial Stamp
+                                </div>
+                                <p class="font-extrabold text-slate-950">Chief Proctor: Prof. Ajmal Iqbal</p>
+                                <p class="text-[10px] text-slate-600 font-semibold border-t border-slate-900 pt-0.5 mt-0.5">
+                                    Govt. Afzal Khan Lala PG College Matta
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashed Tear Line -->
+                <div class="flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
+                    <i class="fa-solid fa-scissors"></i>
+                    <div class="flex-1 border-b-2 border-dashed border-slate-400"></div>
+                    <span>Detach Along Dashed Line</span>
+                    <div class="flex-1 border-b-2 border-dashed border-slate-400"></div>
+                </div>
+
+                <!-- ========================================================= -->
+                <!-- COPY 2: PROCTORIAL OFFICE COPY                            -->
+                <!-- ========================================================= -->
+                <div class="border-2 border-slate-900 rounded-xl p-4 sm:p-5 bg-slate-50/40 relative">
+                    <div class="flex items-start justify-between border-b-2 border-slate-900 pb-2.5 mb-3 gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg border-2 border-slate-900 flex items-center justify-center text-slate-900 shrink-0">
+                                <i class="fa-solid fa-building-columns text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-serif text-xs sm:text-sm font-extrabold text-slate-950 uppercase leading-tight">
+                                    Government Afzal Khan Lala Postgraduate College Matta, Swat
+                                </h3>
+                                <p class="text-[10px] font-semibold text-slate-600 uppercase">
+                                    AKL Postgraduate College Matta • Proctorial Board Record Counterfoil
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 border-2 border-slate-900 rounded text-[10px] font-extrabold uppercase tracking-wider shrink-0 bg-white">
+                            PROCTORIAL OFFICE COPY
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs mb-3">
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Challan / Slip No.</span>
+                            <span id="slip-id-2" class="font-mono font-extrabold text-slate-950">AKL-PRC-2026-001</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Issue Date</span>
+                            <span id="slip-date-2" class="font-bold text-slate-900">13 Nov 2026</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Student & Roll No.</span>
+                            <span id="slip-student-2" class="font-bold text-slate-950">Student (Roll)</span>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Fine & Status</span>
+                            <span id="slip-amount-2" class="font-extrabold text-sm text-slate-950">Rs. 200/- (UNPAID)</span>
+                        </div>
+                    </div>
+
+                    <div class="text-xs border-t border-slate-300 pt-2 mb-3 flex flex-wrap justify-between gap-2">
+                        <span><strong>Department:</strong> <span id="slip-dept-2">BS Chemistry</span></span>
+                        <span><strong>Violation:</strong> <span id="slip-violation-2">Uniform Violation</span></span>
+                    </div>
+
+                    <div class="flex items-end justify-between pt-4 text-[11px] gap-4">
+                        <div>
+                            <span class="text-slate-700">Issued By: <strong id="slip-proctor-2">Prof. Zubair Ahmad</strong></span>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-extrabold text-slate-950">Chief Proctor: Prof. Ajmal Iqbal</p>
+                            <p class="text-[10px] text-slate-600 border-t border-slate-800 pt-0.5 mt-0.5">Govt. Afzal Khan Lala PG College Matta</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT APPLICATION LOGIC & STATE MANAGEMENT                       -->
+    <!-- ===================================================================== -->
+    <script>
+        // LocalStorage Keys
+        const STORAGE_KEYS = {
+            FINES: 'akl_prc_fines_v2',
+            PROCTORS: 'akl_prc_proctors_v2',
+            RULES: 'akl_prc_rules_v2',
+            SESSION: 'akl_prc_session_v2'
+        };
+
+        // Pre-configured Officers (Chief Proctor Prof. Ajmal Iqbal + Duty Proctors)
+        const DEFAULT_PROCTORS = [
+            {
+                id: 'usr-chief-admin',
+                name: 'Prof. Ajmal Iqbal',
+                designation: 'Chief Proctor (Head of Proctorial Board)',
+                department: 'Proctorial & Discipline Committee',
+                username: 'ajmal.iqbal',
+                password: 'admin123',
+                role: 'admin'
+            },
+            {
+                id: 'usr-proc-1',
+                name: 'Prof. Zubair Ahmad',
+                designation: 'Senior Duty Proctor',
+                department: 'Department of Chemistry',
+                username: 'proctor1',
+                password: 'proctor123',
+                role: 'proctor'
+            },
+            {
+                id: 'usr-proc-2',
+                name: 'Prof. Kamran Khan',
+                designation: 'Duty Proctor',
+                department: 'Department of Computer Science',
+                username: 'proctor2',
+                password: 'proctor123',
+                role: 'proctor'
+            }
+        ];
+
+        // Official Violation Categories & Preset Amounts (PKR)
+        const DEFAULT_RULES = [
+            { id: 'rule-1', title: 'Uniform Violation', amount: 200 },
+            { id: 'rule-2', title: 'Late Arrival', amount: 100 },
+            { id: 'rule-3', title: 'ID Card Missing', amount: 150 },
+            { id: 'rule-4', title: 'Mobile Phone Use', amount: 500 },
+            { id: 'rule-5', title: 'Discipline Breach', amount: 1000 },
+            { id: 'rule-6', title: 'Campus Property Damage', amount: 2000 },
+            { id: 'rule-7', title: 'Custom Violation', amount: 300 }
+        ];
+
+        // Realistic Sample Fine Records for AKL College Matta, Swat
+        const DEFAULT_FINES = [
+            {
+                id: 'AKL-PRC-2026-001',
+                studentName: 'Muhammad Haris',
+                fatherName: 'Fazal Rahim',
+                rollNo: 'BSCH-24-014',
+                department: 'BS Chemistry',
+                semester: '3rd Semester',
+                violation: 'Uniform Violation',
+                amount: 200,
+                dateTime: '2026-11-10T08:45',
+                remarks: 'Entered main gate without prescribed college tie and blazer.',
+                issuedBy: 'Prof. Zubair Ahmad',
+                status: 'Paid'
+            },
+            {
+                id: 'AKL-PRC-2026-002',
+                studentName: 'Sajjad Ali',
+                fatherName: 'Bakht Zamin',
+                rollNo: 'BSCS-23-042',
+                department: 'BS Computer Science',
+                semester: '5th Semester',
+                violation: 'Mobile Phone Use',
+                amount: 500,
+                dateTime: '2026-11-11T10:15',
+                remarks: 'Using mobile phone during Data Structures lecture in Lab-2.',
+                issuedBy: 'Prof. Kamran Khan',
+                status: 'Unpaid'
+            },
+            {
+                id: 'AKL-PRC-2026-003',
+                studentName: 'Usman Ghani',
+                fatherName: 'Muhammad Rasool',
+                rollNo: 'FSC-M-119',
+                department: 'FSc Pre-Medical',
+                semester: '2nd Year (Part-II)',
+                violation: 'Late Arrival',
+                amount: 100,
+                dateTime: '2026-11-12T08:30',
+                remarks: 'Arrived 30 minutes late after morning assembly.',
+                issuedBy: 'Prof. Ajmal Iqbal',
+                status: 'Paid'
+            },
+            {
+                id: 'AKL-PRC-2026-004',
+                studentName: 'Bilal Ahmad',
+                fatherName: 'Sher Bahadar',
+                rollNo: 'BSENG-25-009',
+                department: 'BS English',
+                semester: '1st Semester',
+                violation: 'Discipline Breach',
+                amount: 1000,
+                dateTime: '2026-11-12T11:40',
+                remarks: 'Created disturbance in Academic Block B corridor during classes.',
+                issuedBy: 'Prof. Ajmal Iqbal',
+                status: 'Unpaid'
+            },
+            {
+                id: 'AKL-PRC-2026-005',
+                studentName: 'Zeeshan Khan',
+                fatherName: 'Amir Nawab',
+                rollNo: 'FSC-E-084',
+                department: 'FSc Pre-Engineering',
+                semester: '1st Year (Part-I)',
+                violation: 'ID Card Missing',
+                amount: 150,
+                dateTime: '2026-11-13T09:05',
+                remarks: 'Failed to display student ID card during morning proctorial inspection.',
+                issuedBy: 'Prof. Zubair Ahmad',
+                status: 'Waived'
+            }
+        ];
+
+        // Global State
+        let fines = [];
+        let proctors = [];
+        let rules = [];
+        let currentUser = null;
+        let selectedLoginRole = 'admin';
+
+        // Initialize on Page Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAppData();
+            checkExistingSession();
+        });
+
+        function loadAppData() {
+            const storedFines = localStorage.getItem(STORAGE_KEYS.FINES);
+            const storedProctors = localStorage.getItem(STORAGE_KEYS.PROCTORS);
+            const storedRules = localStorage.getItem(STORAGE_KEYS.RULES);
+
+            fines = storedFines ? JSON.parse(storedFines) : [...DEFAULT_FINES];
+            proctors = storedProctors ? JSON.parse(storedProctors) : [...DEFAULT_PROCTORS];
+            rules = storedRules ? JSON.parse(storedRules) : [...DEFAULT_RULES];
+
+            saveAllData();
+        }
+
+        function saveAllData() {
+            localStorage.setItem(STORAGE_KEYS.FINES, JSON.stringify(fines));
+            localStorage.setItem(STORAGE_KEYS.PROCTORS, JSON.stringify(proctors));
+            localStorage.setItem(STORAGE_KEYS.RULES, JSON.stringify(rules));
+        }
+
+        // =====================================================================
+        // TOAST & CONFIRMATION MODAL HELPERS
+        // =====================================================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const styles = {
+                success: 'bg-emerald-900 text-white border-emerald-700',
+                error: 'bg-rose-700 text-white border-rose-500',
+                info: 'bg-slate-800 text-white border-slate-600'
+            };
+            const icons = {
+                success: 'fa-circle-check text-amber-400',
+                error: 'fa-circle-exclamation text-rose-200',
+                info: 'fa-circle-info text-sky-300'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border text-xs font-semibold transform transition-all duration-300 ${styles[type] || styles.success}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[type] || icons.success} text-base"></i>
+                <span class="flex-1">${message}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function customConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => {
+                cleanup();
+                onConfirm();
+            };
+            cancelBtn.onclick = cleanup;
+        }
+
+        // =====================================================================
+        // DUAL ROLE-BASED LOGIN & RBAC
+        // =====================================================================
+        function switchLoginTab(role) {
+            selectedLoginRole = role;
+            const tabAdmin = document.getElementById('tab-admin');
+            const tabProctor = document.getElementById('tab-proctor');
+            const banner = document.getElementById('role-banner');
+
+            if (role === 'admin') {
+                tabAdmin.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-850 text-white shadow-sm';
+                tabProctor.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all';
+                banner.className = 'mb-5 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3';
+                banner.innerHTML = `
+                    <i class="fa-solid fa-crown text-amber-600 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-extrabold text-emerald-950 uppercase tracking-wider">Chief Proctor / Admin Command</p>
+                        <p class="text-xs text-emerald-800 mt-0.5">Complete disciplinary authority under <strong>Prof. Ajmal Iqbal</strong>. Manage proctors, issue/edit/waive fines, and customize violation rates.</p>
+                    </div>
+                `;
+            } else {
+                tabProctor.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-850 text-white shadow-sm';
+                tabAdmin.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all';
+                banner.className = 'mb-5 p-3.5 rounded-2xl bg-slate-100 border border-slate-200 flex items-start gap-3';
+                banner.innerHTML = `
+                    <i class="fa-solid fa-user-tie text-emerald-850 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Duty Proctor Portal</p>
+                        <p class="text-xs text-slate-600 mt-0.5">Authorized strictly to issue new student fines, view records, and print official fine challan slips under <strong>Chief Proctor Prof. Ajmal Iqbal</strong>.</p>
+                    </div>
+                `;
+            }
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('login-password');
+            const eye = document.getElementById('password-eye');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                eye.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('login-username').value.trim().toLowerCase();
+            const password = document.getElementById('login-password').value.trim();
+
+            const matchedUser = proctors.find(
+                u => u.username.toLowerCase() === username && u.password === password
+            );
+
+            if (!matchedUser) {
+                showToast('Invalid username or password. Please verify your credentials.', 'error');
+                return;
+            }
+
+            if (matchedUser.role !== selectedLoginRole) {
+                const expectedTab = matchedUser.role === 'admin' ? 'Chief Proctor / Admin' : 'Duty Proctor Login';
+                showToast(`Role Mismatch: Please select the "${expectedTab}" tab for this account.`, 'error');
+                return;
+            }
+
+            currentUser = matchedUser;
+            sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(currentUser));
+            enterPortal();
+            showToast(`Signed in as ${currentUser.name}`, 'success');
+        }
+
+        function checkExistingSession() {
+            const saved = sessionStorage.getItem(STORAGE_KEYS.SESSION);
+            if (saved) {
+                currentUser = JSON.parse(saved);
+                enterPortal();
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            sessionStorage.removeItem(STORAGE_KEYS.SESSION);
+            document.getElementById('portal-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            showToast('Logged out securely.', 'info');
+        }
+
+        function enterPortal() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('portal-view').classList.remove('hidden');
+
+            // Update Header Profile Badge
+            document.getElementById('header-user-name').textContent = currentUser.name;
+            const initials = currentUser.name.replace(/^Prof\.\s*/i, '').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+            document.getElementById('user-avatar-badge').textContent = initials || 'PR';
+
+            const isAdmin = currentUser.role === 'admin';
+            document.getElementById('header-user-role').textContent = isAdmin
+                ? 'Chief Proctor (Admin Authority)'
+                : 'Duty Proctor (Issue & Print Only)';
+
+            // Strictly enforce UI visibility for Admin-Only Tabs
+            document.querySelectorAll('.admin-only-nav').forEach(el => {
+                el.style.display = isAdmin ? 'flex' : 'none';
+            });
+
+            const restrictionBar = document.getElementById('proctor-restriction-bar');
+            if (isAdmin) {
+                restrictionBar.classList.add('hidden');
+            } else {
+                restrictionBar.classList.remove('hidden');
+            }
+
+            populateViolationDropdown();
+            resetFineForm();
+            updateDashboardStats();
+            renderFinesTable();
+            if (isAdmin) {
+                renderProctorsList();
+                renderRulesList();
+            }
+            switchSection('dashboard');
+        }
+
+        function switchSection(sectionName) {
+            // Hard RBAC check against unauthorized section access
+            if (currentUser.role !== 'admin' && (sectionName === 'manage-proctors' || sectionName === 'violation-rules')) {
+                showToast('Restricted: Only Chief Proctor Prof. Ajmal Iqbal can access administrative settings.', 'error');
+                return;
+            }
+
+            const sections = ['dashboard', 'issue-fine', 'manage-proctors', 'violation-rules'];
+            sections.forEach(sec => {
+                document.getElementById(`section-${sec}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${sec}`);
+                if (navBtn) {
+                    navBtn.className = 'nav-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-emerald-100 hover:bg-emerald-800 flex items-center gap-2 whitespace-nowrap transition';
+                }
+            });
+
+            document.getElementById(`section-${sectionName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${sectionName}`);
+            if (activeBtn) {
+                activeBtn.className = 'nav-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 whitespace-nowrap bg-amber-500 text-emerald-950 shadow-sm transition';
+            }
+
+            if (sectionName === 'issue-fine' && !document.getElementById('edit-fine-id').value) {
+                resetFineForm();
+            }
+        }
+
+        // =====================================================================
+        // KPI DASHBOARD & LEDGER RENDERING
+        // =====================================================================
+        function updateDashboardStats() {
+            const totalCount = fines.length;
+            const totalAssessed = fines.reduce((sum, f) => sum + Number(f.amount), 0);
+            const paidFines = fines.filter(f => f.status === 'Paid');
+            const unpaidFines = fines.filter(f => f.status === 'Unpaid');
+
+            const paidAmount = paidFines.reduce((sum, f) => sum + Number(f.amount), 0);
+            const unpaidAmount = unpaidFines.reduce((sum, f) => sum + Number(f.amount), 0);
+            const activeDutyProctors = proctors.filter(p => p.role === 'proctor').length;
+
+            document.getElementById('stat-total-count').textContent = totalCount;
+            document.getElementById('stat-total-amount-sub').textContent = `Total Assessed: Rs. ${totalAssessed.toLocaleString()}`;
+            document.getElementById('stat-paid-amount').textContent = `Rs. ${paidAmount.toLocaleString()}`;
+            document.getElementById('stat-paid-count').textContent = `${paidFines.length} challan(s) collected`;
+            document.getElementById('stat-unpaid-amount').textContent = `Rs. ${unpaidAmount.toLocaleString()}`;
+            document.getElementById('stat-unpaid-count').textContent = `${unpaidFines.length} challan(s) pending`;
+            document.getElementById('stat-proctors-count').textContent = activeDutyProctors;
+        }
+
+        function renderFinesTable() {
+            const tbody = document.getElementById('fines-table-body');
+            const search = document.getElementById('search-input').value.trim().toLowerCase();
+            const deptFilter = document.getElementById('filter-dept').value;
+            const statusFilter = document.getElementById('filter-status').value;
+            const isAdmin = currentUser.role === 'admin';
+
+            const filtered = fines.filter(f => {
+                const matchesSearch =
+                    f.studentName.toLowerCase().includes(search) ||
+                    f.fatherName.toLowerCase().includes(search) ||
+                    f.rollNo.toLowerCase().includes(search) ||
+                    f.id.toLowerCase().includes(search);
+                const matchesDept = deptFilter === 'ALL' || f.department === deptFilter;
+                const matchesStatus = statusFilter === 'ALL' || f.status === statusFilter;
+                return matchesSearch && matchesDept && matchesStatus;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-12 text-center text-slate-400">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                            <p class="text-sm font-medium">No fine challan records found matching your search criteria.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(fine => {
+                let statusBadge = '';
+                if (fine.status === 'Paid') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200"><i class="fa-solid fa-circle-check"></i> Paid</span>`;
+                } else if (fine.status === 'Waived') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200"><i class="fa-solid fa-hand-holding-heart"></i> Waived</span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-clock"></i> Unpaid</span>`;
+                }
+
+                // Chief Proctor / Admin Exclusive Controls (Cycle Status, Edit, Delete)
+                const adminControls = isAdmin ? `
+                    <button onclick="cycleFineStatus('${fine.id}')" title="Toggle Status (Unpaid → Paid → Waived)"
+                        class="p-2 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                    <button onclick="startEditFine('${fine.id}')" title="Edit Fine Challan"
+                        class="p-2 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button onclick="deleteFine('${fine.id}')" title="Delete Fine Record"
+                        class="p-2 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                ` : '';
+
+                return `
+                    <tr class="hover:bg-slate-50/90 transition">
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <span class="font-mono text-xs font-extrabold text-emerald-950 block">${fine.id}</span>
+                            <span class="text-[11px] text-slate-500">${formatDisplayDateTime(fine.dateTime)}</span>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <p class="font-bold text-slate-900">${escapeHtml(fine.studentName)}</p>
+                            <p class="text-xs text-slate-500">S/O ${escapeHtml(fine.fatherName)} • <span class="font-mono font-bold text-slate-700">${escapeHtml(fine.rollNo)}</span></p>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="text-xs font-semibold text-slate-800 block">${escapeHtml(fine.department)}</span>
+                            <span class="text-[11px] text-slate-500">${escapeHtml(fine.semester)}</span>
+                        </td>
+                        <td class="py-3.5 px-4 max-w-xs">
+                            <span class="text-xs font-bold text-slate-800 block">${escapeHtml(fine.violation)}</span>
+                            ${fine.remarks ? `<span class="text-[11px] text-slate-500 line-clamp-1">${escapeHtml(fine.remarks)}</span>` : ''}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap font-extrabold text-emerald-950">
+                            Rs. ${Number(fine.amount).toLocaleString()}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600 font-medium">
+                            ${escapeHtml(fine.issuedBy)}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            ${statusBadge}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap text-right">
+                            <div class="inline-flex items-center gap-1.5">
+                                <button onclick="openPrintSlip('${fine.id}')" title="Print Official Fine Slip"
+                                    class="px-3 py-1.5 rounded-lg bg-emerald-850 hover:bg-emerald-900 text-white text-xs font-bold transition inline-flex items-center gap-1.5 shadow-xs">
+                                    <i class="fa-solid fa-print"></i>
+                                    <span>Print Slip</span>
+                                </button>
+                                ${adminControls}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // =====================================================================
+        // ISSUE, EDIT, STATUS CYCLE & DELETE FINE OPERATIONS
+        // =====================================================================
+        function populateViolationDropdown() {
+            const select = document.getElementById('fine-violation');
+            select.innerHTML = rules.map(r =>
+                `<option value="${escapeHtml(r.title)}" data-amount="${r.amount}">${escapeHtml(r.title)} (Rs. ${r.amount})</option>`
+            ).join('');
+            autoFillViolationAmount();
+        }
+
+        function autoFillViolationAmount() {
+            const select = document.getElementById('fine-violation');
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.dataset.amount) {
+                document.getElementById('fine-amount').value = selectedOption.dataset.amount;
+            }
+        }
+
+        function generateNextSlipId() {
+            const numbers = fines.map(f => {
+                const parts = f.id.split('-');
+                return parseInt(parts[parts.length - 1], 10) || 0;
+            });
+            const maxNum = numbers.length ? Math.max(...numbers) : 0;
+            const padded = String(maxNum + 1).padStart(3, '0');
+            return `AKL-PRC-2026-${padded}`;
+        }
+
+        function getCurrentLocalDateTimeInput() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            return now.toISOString().slice(0, 16);
+        }
+
+        function resetFineForm() {
+            document.getElementById('issue-fine-form').reset();
+            document.getElementById('edit-fine-id').value = '';
+            document.getElementById('fine-datetime').value = getCurrentLocalDateTimeInput();
+            document.getElementById('form-header-title').textContent = 'Issue Official Disciplinary Fine Challan';
+            document.getElementById('form-challan-preview').textContent = generateNextSlipId();
+            document.getElementById('form-issued-by').textContent = currentUser ? currentUser.name : 'Prof. Ajmal Iqbal';
+            document.getElementById('submit-fine-btn').innerHTML = `<i class="fa-solid fa-print"></i><span>Issue Fine & Open Print Challan</span>`;
+            autoFillViolationAmount();
+        }
+
+        function handleIssueFine(event) {
+            event.preventDefault();
+            const editId = document.getElementById('edit-fine-id').value;
+
+            const payload = {
+                studentName: document.getElementById('fine-student-name').value.trim(),
+                fatherName: document.getElementById('fine-father-name').value.trim(),
+                rollNo: document.getElementById('fine-roll-no').value.trim().toUpperCase(),
+                department: document.getElementById('fine-department').value,
+                semester: document.getElementById('fine-semester').value,
+                dateTime: document.getElementById('fine-datetime').value,
+                violation: document.getElementById('fine-violation').value,
+                amount: Number(document.getElementById('fine-amount').value),
+                remarks: document.getElementById('fine-remarks').value.trim()
+            };
+
+            if (editId) {
+                if (currentUser.role !== 'admin') {
+                    showToast('Access Denied: Only Chief Proctor Prof. Ajmal Iqbal can edit challans.', 'error');
+                    return;
+                }
+                const idx = fines.findIndex(f => f.id === editId);
+                if (idx !== -1) {
+                    fines[idx] = { ...fines[idx], ...payload };
+                    saveAllData();
+                    updateDashboardStats();
+                    renderFinesTable();
+                    resetFineForm();
+                    switchSection('dashboard');
+                    showToast(`Challan ${editId} updated successfully.`, 'success');
+                }
+            } else {
+                const newSlipId = generateNextSlipId();
+                const newRecord = {
+                    id: newSlipId,
+                    ...payload,
+                    issuedBy: currentUser.name,
+                    status: 'Unpaid'
+                };
+                fines.unshift(newRecord);
+                saveAllData();
+                updateDashboardStats();
+                renderFinesTable();
+                resetFineForm();
+                switchSection('dashboard');
+                showToast(`Challan ${newSlipId} issued! Opening printable slip...`, 'success');
+                openPrintSlip(newSlipId);
+            }
+        }
+
+        function startEditFine(id) {
+            if (currentUser.role !== 'admin') return;
+            const fine = fines.find(f => f.id === id);
+            if (!fine) return;
+
+            switchSection('issue-fine');
+            document.getElementById('edit-fine-id').value = fine.id;
+            document.getElementById('form-header-title').textContent = 'Edit Disciplinary Fine Challan';
+            document.getElementById('form-challan-preview').textContent = `EDITING: ${fine.id}`;
+            document.getElementById('fine-student-name').value = fine.studentName;
+            document.getElementById('fine-father-name').value = fine.fatherName;
+            document.getElementById('fine-roll-no').value = fine.rollNo;
+            document.getElementById('fine-department').value = fine.department;
+            document.getElementById('fine-semester').value = fine.semester;
+            document.getElementById('fine-datetime').value = fine.dateTime;
+            document.getElementById('fine-violation').value = fine.violation;
+            document.getElementById('fine-amount').value = fine.amount;
+            document.getElementById('fine-remarks').value = fine.remarks || '';
+            document.getElementById('form-issued-by').textContent = fine.issuedBy;
+            document.getElementById('submit-fine-btn').innerHTML = `<i class="fa-solid fa-floppy-disk"></i><span>Update Challan Record</span>`;
+        }
+
+        function cycleFineStatus(id) {
+            if (currentUser.role !== 'admin') return;
+            const fine = fines.find(f => f.id === id);
+            if (!fine) return;
+
+            const order = ['Unpaid', 'Paid', 'Waived'];
+            const nextStatus = order[(order.indexOf(fine.status) + 1) % order.length];
+            fine.status = nextStatus;
+
+            saveAllData();
+            updateDashboardStats();
+            renderFinesTable();
+            showToast(`Challan ${id} status changed to "${nextStatus}".`, 'success');
+        }
+
+        function deleteFine(id) {
+            if (currentUser.role !== 'admin') return;
+            customConfirm(
+                'Delete Fine Challan Record?',
+                `Permanently delete Challan ${id} from the AKL College Matta disciplinary ledger? Authorized under Chief Proctor Prof. Ajmal Iqbal.`,
+                () => {
+                    fines = fines.filter(f => f.id !== id);
+                    saveAllData();
+                    updateDashboardStats();
+                    renderFinesTable();
+                    showToast(`Challan ${id} deleted.`, 'info');
+                }
+            );
+        }
+
+        // =====================================================================
+        // DUAL-COPY PRINTABLE FINE SLIP MODAL
+        // =====================================================================
+        function openPrintSlip(id) {
+            const fine = fines.find(f => f.id === id);
+            if (!fine) return;
+
+            const formattedDate = formatDisplayDateTime(fine.dateTime);
+            const formattedAmount = `Rs. ${Number(fine.amount).toLocaleString()}/-`;
+
+            // Copy 1: Student Copy
+            document.getElementById('slip-id-1').textContent = fine.id;
+            document.getElementById('slip-date-1').textContent = formattedDate;
+            document.getElementById('slip-status-1').textContent = fine.status.toUpperCase();
+            document.getElementById('slip-student-1').textContent = fine.studentName;
+            document.getElementById('slip-father-1').textContent = fine.fatherName;
+            document.getElementById('slip-roll-1').textContent = `${fine.rollNo} • ${fine.department} (${fine.semester})`;
+            document.getElementById('slip-violation-1').textContent = fine.violation;
+            document.getElementById('slip-remarks-1').textContent = fine.remarks
+                ? `Remarks: ${fine.remarks}`
+                : 'Disciplinary violation recorded on campus by Proctorial Board.';
+            document.getElementById('slip-amount-1').textContent = formattedAmount;
+            document.getElementById('slip-proctor-1').textContent = fine.issuedBy;
+
+            // Copy 2: Proctorial Office Copy
+            document.getElementById('slip-id-2').textContent = fine.id;
+            document.getElementById('slip-date-2').textContent = formattedDate;
+            document.getElementById('slip-student-2').textContent = `${fine.studentName} (${fine.rollNo})`;
+            document.getElementById('slip-amount-2').textContent = `${formattedAmount} (${fine.status.toUpperCase()})`;
+            document.getElementById('slip-dept-2').textContent = `${fine.department} - ${fine.semester}`;
+            document.getElementById('slip-violation-2').textContent = fine.violation;
+            document.getElementById('slip-proctor-2').textContent = fine.issuedBy;
+
+            const modal = document.getElementById('slip-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSlipModal() {
+            const modal = document.getElementById('slip-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // =====================================================================
+        // CHIEF PROCTOR ADMIN: PROCTOR TEAM & VIOLATION TARIFF MANAGEMENT
+        // =====================================================================
+        function renderProctorsList() {
+            const container = document.getElementById('proctors-list');
+            container.innerHTML = proctors.map(p => {
+                const isChief = p.role === 'admin';
+                return `
+                    <div class="p-4 rounded-2xl border ${isChief ? 'bg-amber-50/70 border-amber-200' : 'bg-slate-50 border-slate-200'} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl ${isChief ? 'bg-emerald-950 text-amber-400' : 'bg-emerald-850 text-white'} font-bold text-sm flex items-center justify-center shrink-0">
+                                <i class="fa-solid ${isChief ? 'fa-crown' : 'fa-user-tie'}"></i>
+                            </div>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(p.name)}</h4>
+                                    <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${isChief ? 'bg-amber-200 text-amber-950' : 'bg-slate-200 text-slate-700'}">
+                                        ${isChief ? 'Chief Proctor (Admin)' : 'Duty Proctor'}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600">${escapeHtml(p.designation)} • ${escapeHtml(p.department)}</p>
+                                <p class="text-[11px] font-mono text-slate-500 mt-0.5">Username: <strong>${escapeHtml(p.username)}</strong> | Password: <strong>${escapeHtml(p.password)}</strong></p>
+                            </div>
+                        </div>
+                        ${!isChief ? `
+                            <button onclick="removeProctor('${p.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition self-start sm:self-center">
+                                <i class="fa-solid fa-user-xmark mr-1"></i> Revoke Access
+                            </button>
+                        ` : `
+                            <span class="text-xs font-bold text-emerald-900 px-3 py-1 rounded-lg bg-white border border-amber-200 self-start sm:self-center">
+                                Command Authority
+                            </span>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleAddProctor(event) {
+            event.preventDefault();
+            if (currentUser.role !== 'admin') return;
+
+            const name = document.getElementById('new-proctor-name').value.trim();
+            const dept = document.getElementById('new-proctor-dept').value.trim();
+            const username = document.getElementById('new-proctor-username').value.trim().toLowerCase();
+            const password = document.getElementById('new-proctor-password').value.trim();
+
+            if (proctors.some(p => p.username.toLowerCase() === username)) {
+                showToast('Username already exists. Please enter a unique proctor ID.', 'error');
+                return;
+            }
+
+            proctors.push({
+                id: 'usr-' + Date.now(),
+                name,
+                designation: 'Duty Proctor',
+                department: dept,
+                username,
+                password,
+                role: 'proctor'
+            });
+
+            saveAllData();
+            updateDashboardStats();
+            renderProctorsList();
+            event.target.reset();
+            showToast(`${name} added to AKL College Proctorial Board.`, 'success');
+        }
+
+        function removeProctor(id) {
+            if (currentUser.role !== 'admin') return;
+            customConfirm(
+                'Revoke Duty Proctor Access?',
+                'This faculty member will no longer be able to log into the Proctorial Portal.',
+                () => {
+                    proctors = proctors.filter(p => p.id !== id);
+                    saveAllData();
+                    updateDashboardStats();
+                    renderProctorsList();
+                    showToast('Duty Proctor account removed.', 'info');
+                }
+            );
+        }
+
+        function renderRulesList() {
+            const container = document.getElementById('rules-list');
+            container.innerHTML = rules.map(r => `
+                <div class="p-3.5 bg-white flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-bold text-slate-900">${escapeHtml(r.title)}</p>
+                        <p class="text-xs text-emerald-800 font-semibold">Standard Penalty: Rs. ${Number(r.amount).toLocaleString()}</p>
+                    </div>
+                    <button onclick="deleteRule('${r.id}')" class="p-2 rounded-lg text-rose-600 hover:bg-rose-50 transition" title="Delete Preset">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function handleAddRule(event) {
+            event.preventDefault();
+            if (currentUser.role !== 'admin') return;
+
+            const title = document.getElementById('new-rule-title').value.trim();
+            const amount = Number(document.getElementById('new-rule-amount').value);
+
+            rules.push({
+                id: 'rule-' + Date.now(),
+                title,
+                amount
+            });
+
+            saveAllData();
+            renderRulesList();
+            populateViolationDropdown();
+            event.target.reset();
+            showToast('New violation preset saved.', 'success');
+        }
+
+        function deleteRule(id) {
+            if (currentUser.role !== 'admin') return;
+            if (rules.length <= 1) {
+                showToast('At least one violation preset is required.', 'error');
+                return;
+            }
+            rules = rules.filter(r => r.id !== id);
+            saveAllData();
+            renderRulesList();
+            populateViolationDropdown();
+            showToast('Violation preset deleted.', 'info');
+        }
+
+        function confirmResetDemoData() {
+            if (currentUser.role !== 'admin') return;
+            customConfirm(
+                'Reset Demo Data to Defaults?',
+                'This will restore the initial AKL College Matta sample student fines, proctors, and violation tariff.',
+                () => {
+                    localStorage.removeItem(STORAGE_KEYS.FINES);
+                    localStorage.removeItem(STORAGE_KEYS.PROCTORS);
+                    localStorage.removeItem(STORAGE_KEYS.RULES);
+                    loadAppData();
+                    populateViolationDropdown();
+                    updateDashboardStats();
+                    renderFinesTable();
+                    renderProctorsList();
+                    renderRulesList();
+                    showToast('Demo data restored to defaults.', 'success');
+                }
+            );
+        }
+
+        // =====================================================================
+        // DATE FORMATTING & XSS SANITIZATION UTILITIES
+        // =====================================================================
+        function formatDisplayDateTime(dateTimeStr) {
+            if (!dateTimeStr) return '';
+            const d = new Date(dateTimeStr);
+            if (isNaN(d.getTime())) return dateTimeStr;
+            const datePart = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            return `${datePart}, ${timePart}`;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
